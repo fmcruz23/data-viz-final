@@ -1,0 +1,140 @@
+---
+title: "algae_viz"
+author: "Felicia Cruz"
+date: "3/3/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(here)
+library(janitor)
+library(lubridate)
+library(stringr)
+library(plotly)
+```
+
+
+```{r}
+cots <- read_csv(here("cots.csv")) %>% 
+  clean_names()
+cots$year <- as.factor(cots$year)
+```
+
+```{r}
+cots_summary <- cots %>%
+  group_by(site, year) %>% 
+  summarize(total = sum(cots))
+
+# make totals df 
+totals <- cots_summary %>% 
+  group_by(year) %>% 
+  summarize(total_count = sum(total)) 
+```
+
+```{r}
+g <- ggplot(data = cots_summary, aes(x = as.factor(year), y = total, fill = site)) +
+  geom_col(position = "stack") +
+  labs(title = "Crown of Thorns Sea Stars",
+       subtitle = "Moorea, French Polynesia (2005-2018)",
+       fill = "Site",
+       x = "year") +
+  scale_y_continuous(breaks = seq(0, 150, by = 25)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank()) +
+  scale_fill_brewer(palette = "Set2") 
+
+g
+
+ggplotly(g,
+         tooltip = c("total", "site")) %>% 
+  layout(title = list(text = paste0('Crown of Thorns Sea Stars',
+                                    '<br>',
+                                    '<sup>',
+                                    'Moorea, French Polynesia (2005-2018)',
+                                    '</sup>')))
+```
+
+```{r, fig.cap="testing"}
+g_2 <- ggplot(data = cots_summary, aes(x = as.factor(year), y = total, fill = site)) +
+  geom_col(position = "stack") +
+  labs(title = "Crown of Thorns Sea Stars",
+       subtitle = "Moorea, French Polynesia (2005-2018)",
+       fill = "Site",
+       x = "year") +
+  scale_y_continuous(breaks = seq(0, 150, by = 25)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank()) +
+  scale_fill_brewer(palette = "Set2") +
+  geom_text(
+    aes(label = stat(y), group = year), 
+    stat = 'summary', fun = sum, vjust = -1, nudge_y = 2
+  )
+  
+ggplotly(g_2,
+         tooltip = c("total", "site"))  %>% 
+  layout(title = list(text = paste0('Crown of Thorns Sea Stars',
+                                    '<br>',
+                                    '<sup>',
+                                    'Moorea, French Polynesia (2005-2018)',
+                                    '</sup>')))
+```
+Figure 1: Total counts of Crown of Thorns Sea Stars at the six LTER research sites surrounding Moorea. 
+
+```{r}
+# total coral line graph? 
+coral <- read_csv(here("coral_pop_since_05.csv")) %>% 
+  clean_names() %>% 
+  as.data.frame() %>% 
+  separate(date, c("year", "month"), "-")
+```
+
+
+```{r}
+coral %>% 
+  group_by(year) %>% 
+  summarize(mean(percent_cover))
+```
+
+
+
+## Adding a dual y axis to show COTS and macroalgae ? 
+```{r}
+# explore macroalgae 
+algae <- read_csv(here("benthic_algae.csv"))
+
+```
+
+
+group by site & year , sum total observations / 1000 -> annual site mean density                     
+```{r}
+cots_density <-  cots %>% 
+  group_by(site, year) %>% 
+  summarize(density = (sum(cots)/1000)) # this should give annual site mean density 
+```
+
+plot density 
+```{r, fig.cap="Figure 2: Testing"}
+ggplot(data = cots_density, aes(x = year, y = density)) +
+  geom_point(aes(color = site)) +
+  geom_line(aes(group = site, color = site)) +
+  facet_wrap(~site) +
+  labs(title = "Crown of Thorns Sea Stars - Annual Site Means",
+       subtitle = "Moorea, French Polynesia (2005 - 2018)") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 80, hjust = 1)) +
+  scale_color_brewer(palette = "Set2")
+  
+```
+Figure 2: Annual site means for Crown of Thorns Sea Star density at the six LTER research sites surrounding Moorea. 
+
+From Figure 1, we can see that Moorea was hit with a huge outbreak of Crown of Thorns Sea Stars between 2007 and 2009. While the spike declined in the coming years
+
+Figure 2 shows us the annual site density per 1000 square meters. 

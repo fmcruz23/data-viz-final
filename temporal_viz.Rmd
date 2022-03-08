@@ -1,0 +1,72 @@
+---
+title: "Temporal Visualizations"
+author: "Felicia Cruz"
+date: "2/24/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(here)
+library(janitor)
+library(lubridate)
+library(stringr)
+library(plotly)
+```
+
+```{r}
+# read in coral data 
+coral <- read_csv(here("coral_pop_since_05.csv")) %>% 
+  clean_names() %>% 
+  as.data.frame()
+
+# split date into month and year column 
+coral <- coral %>%
+  separate(date, c("year", "month"), "-")
+```
+
+```{r}
+annual_site_means <- coral %>% 
+  group_by(year, site) %>% 
+  summarize(mean_percent_cover = mean(percent_cover))
+
+# remove first row 
+annual_site_means <- annual_site_means[-1,]
+
+```
+
+```{r}
+g <- ggplot(data = annual_site_means, aes(x = as.factor(year), y = mean_percent_cover)) + 
+  geom_point(aes(color = site), alpha = 0.5) +
+  geom_line(aes(group = site, color = site)) +
+  geom_line(aes(color = site)) +
+  labs(x = "Year",
+       y = "Coral Cover (%)",
+       title = "Percent Coral Cover - Annual Site Means")
+
+ggplotly(g)
+```
+
+```{r}
+# subset for one site 
+lter_1 <- coral %>% 
+  filter(site  == "LTER 1") %>%
+  group_by(year) %>% 
+  summarize(mean_percent_cover = mean(percent_cover))
+
+lter_1_plot <- ggplot(lter_1, aes(x = as.factor(year), y = mean_percent_cover)) +
+  geom_point() +
+  geom_line(aes(group = 1)) + 
+  labs(x = "Year",
+       y = "Coral Cover (%)",
+       title = "Mean Percent Coral Cover (Site 1)")
+
+ggplotly(lter_1_plot)
+
+```
+
